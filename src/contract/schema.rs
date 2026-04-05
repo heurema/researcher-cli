@@ -76,7 +76,7 @@ pub enum HypothesisStatus {
     Refuted,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Clone)]
 pub struct Claim {
     pub text: String,
     pub confidence: f32,
@@ -84,13 +84,25 @@ pub struct Claim {
     pub verification_status: VerificationStatus,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum VerificationStatus {
     Unverified,
     Verified,
     Rejected,
     Contradictory,
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Clone)]
+pub struct SessionState {
+    pub task_id: uuid::Uuid,
+    pub topic: String,
+    pub depth: ResearchDepth,
+    pub providers: Vec<String>,
+    pub completed_stage: String,
+    pub raw_outputs: Vec<(String, String)>,
+    pub claims: Vec<Claim>,
+    pub summary: Option<String>,
 }
 
 impl<T> Envelope<T> {
