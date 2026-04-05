@@ -43,7 +43,7 @@ pub struct ResearchRequest {
     pub providers: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, JsonSchema, Default)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema, Default, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum ResearchDepth {
     Shallow,
@@ -55,8 +55,25 @@ pub enum ResearchDepth {
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ResearchResponse {
     pub task_id: uuid::Uuid,
+    pub hypotheses: Vec<Hypothesis>,
     pub claims: Vec<Claim>,
     pub summary: String,
+    pub log_path: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+pub struct Hypothesis {
+    pub text: String,
+    pub status: HypothesisStatus,
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum HypothesisStatus {
+    Proposed,
+    Testing,
+    Confirmed,
+    Refuted,
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
