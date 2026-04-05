@@ -1,1 +1,21 @@
-/target
+# Target
+/target/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+
+# Jules/Temporary
+.jules/
+.gemini_security/
+.conductor_cache/
+
+# Local Env
+.env
+.env.local

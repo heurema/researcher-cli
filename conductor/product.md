@@ -1,7 +1,8 @@
-# Product Definition: OmniCLI
+# Product Definition: ResearcherCLI
 
 ## Vision
-A universal, unified CLI orchestrator for interacting with Codex, Claude Code, and Gemini CLI. It acts as a primary interface for autonomous deep research, multi-agent coordination, and codebase modifications, leveraging the strengths of multiple LLM providers under a single contract-first protocol.
+A universal, unified CLI orchestrator for interacting with Codex, Claude Code, and Gemini CLI.
+ It acts as a primary interface for autonomous deep research, multi-agent coordination, and codebase modifications, leveraging the strengths of multiple LLM providers under a single contract-first protocol.
 
 ## Core Capabilities
 - **Unified Interface:** One CLI command (`omni`) to route requests to the best-suited model (Claude for reasoning/research, Gemini for context/speed, Codex for pure code generation).
