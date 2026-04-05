@@ -17,12 +17,16 @@ pub struct CodexProvider;
 impl Provider for ClaudeProvider {
     fn name(&self) -> &str { "claude" }
     async fn query(&self, prompt: &str) -> Result<String> {
+        let sanitized_prompt: String = prompt.chars()
+            .filter(|&c| c.is_alphanumeric() || c.is_whitespace() || ".,!?-_/:()<>\"'".contains(c))
+            .collect();
+
         let output = Command::new("claude")
             // Sanitize environment to ensure subscription auth is used if present
             .env_remove("ANTHROPIC_API_KEY")
             .env_remove("CLAUDECODE")
             .arg("-p")
-            .arg(prompt)
+            .arg(&sanitized_prompt)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()?
@@ -42,9 +46,13 @@ impl Provider for ClaudeProvider {
 impl Provider for GeminiProvider {
     fn name(&self) -> &str { "gemini" }
     async fn query(&self, prompt: &str) -> Result<String> {
+        let sanitized_prompt: String = prompt.chars()
+            .filter(|&c| c.is_alphanumeric() || c.is_whitespace() || ".,!?-_/:()<>\"'".contains(c))
+            .collect();
+
         let output = Command::new("gemini")
             .arg("-p")
-            .arg(prompt)
+            .arg(&sanitized_prompt)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()?
@@ -64,9 +72,13 @@ impl Provider for GeminiProvider {
 impl Provider for CodexProvider {
     fn name(&self) -> &str { "codex" }
     async fn query(&self, prompt: &str) -> Result<String> {
+        let sanitized_prompt: String = prompt.chars()
+            .filter(|&c| c.is_alphanumeric() || c.is_whitespace() || ".,!?-_/:()<>\"'".contains(c))
+            .collect();
+
         let output = Command::new("codex")
             .arg("exec")
-            .arg(prompt)
+            .arg(&sanitized_prompt)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()?

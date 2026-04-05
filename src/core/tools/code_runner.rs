@@ -7,7 +7,25 @@ use std::fs;
 pub struct CodeRunner;
 
 impl CodeRunner {
+    /// Validates code for potentially malicious patterns.
+    /// Note: This is a basic check. Real isolation (e.g. Docker) is recommended for production.
+    fn validate_code(code: &str) -> Result<()> {
+        let blacklist = [
+            "os.system", "subprocess", "eval(", "exec(", "open(", 
+            "std::process", "Command::new", "fs::", "remove_file", "rm ", "chmod"
+        ];
+        
+        for pattern in blacklist {
+            if code.contains(pattern) {
+                anyhow::bail!("Security Error: Potentially malicious pattern detected: '{}'", pattern);
+            }
+        }
+        Ok(())
+    }
+
     pub async fn run_python(code: &str) -> Result<String> {
+        Self::validate_code(code)?;
+
         let output = timeout(Duration::from_secs(30), 
             Command::new("python3")
                 .arg("-c")
@@ -29,6 +47,8 @@ impl CodeRunner {
     }
 
     pub async fn run_rust(code: &str) -> Result<String> {
+        Self::validate_code(code)?;
+
         let tmp_file = "temp_research_tool.rs";
         let tmp_bin = "./temp_research_tool";
         
@@ -44,6 +64,7 @@ impl CodeRunner {
 
         if !compile.status.success() {
             let err = String::from_utf8_lossy(&compile.stderr);
+            let _ = fs::remove_file(tmp_file);
             anyhow::bail!("Rust compile error: {}", err)
         }
 

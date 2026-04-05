@@ -55,7 +55,7 @@ enum ToolCommands {
     },
     /// Optimize a function over a parameter space
     Optimize {
-        #[arg(short, long)]
+        #[arg(short, long, value_delimiter = ' ', num_args = 1..)]
         params: Vec<String>,
         #[arg(short, long)]
         code: String,

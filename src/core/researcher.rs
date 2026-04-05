@@ -13,13 +13,22 @@ impl ResearcherService {
         Self { providers }
     }
 
+    /// Basic sanitization to remove shell metacharacters and suspicious prompt injection patterns.
+    fn sanitize_input(input: &str) -> String {
+        input.chars()
+            .filter(|&c| c.is_alphanumeric() || c.is_whitespace() || ".-_/:".contains(c))
+            .collect()
+    }
+
     pub async fn conduct_research(&self, request: ResearchRequest, resume_state: Option<SessionState>) -> Result<ResearchResponse> {
         let task_id = resume_state.as_ref().map(|s| s.task_id).unwrap_or_else(Uuid::new_v4);
         let logger = ResearchLogger::new(task_id)?;
         
+        let sanitized_topic = Self::sanitize_input(&request.topic);
+        
         let mut state = resume_state.unwrap_or(SessionState {
             task_id,
-            topic: request.topic.clone(),
+            topic: sanitized_topic.clone(),
             depth: request.depth,
             providers: request.providers.clone(),
             completed_stage: "start".to_string(),
@@ -29,9 +38,9 @@ impl ResearcherService {
         });
 
         if state.completed_stage == "start" {
-            logger.log(&format!("Starting research on topic: {}", request.topic))?;
+            logger.log(&format!("Starting research on topic: {}", sanitized_topic))?;
         } else {
-            logger.log(&format!("Resuming research on topic: {} from stage: {}", request.topic, state.completed_stage))?;
+            logger.log(&format!("Resuming research on topic: {} from stage: {}", sanitized_topic, state.completed_stage))?;
         }
 
         // Stage 1: DIVE
@@ -42,7 +51,7 @@ impl ResearcherService {
                         "Perform deep research on the following topic: {}. \
                         Depth: {:?}. \
                         Provide a detailed technical breakdown with specific facts.", 
-                        request.topic, request.depth
+                        sanitized_topic, request.depth
                     );
                     
                     logger.log(&format!("Invoking provider: {}", provider.name()))?;
