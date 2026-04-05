@@ -67,18 +67,8 @@ impl ResearcherService {
         logger.log(&format!("Extracting claims using provider: {}", extractor.name()))?;
         let claims_json = extractor.query(&extraction_prompt).await?;
         
-        // Stage 3: SYNTHESIS & HYPOTHESES
-        let synthesis_prompt = format!(
-            "Based on the following research and extracted claims, provide a concise final summary. \
-            Also, propose 2-3 hypotheses for further research. \
-            Claims: {}\nResearch Data: {}", 
-            claims_json, combined_raw
-        );
-        
-        let synthesis = extractor.query(&synthesis_prompt).await?;
-
         // Parse claims (basic JSON extraction for MVP)
-        let claims: Vec<Claim> = serde_json::from_str(&claims_json).unwrap_or_else(|_| {
+        let mut claims: Vec<Claim> = serde_json::from_str(&claims_json).unwrap_or_else(|_| {
             vec![Claim {
                 text: "Failed to parse claims as JSON. See raw logs.".to_string(),
                 confidence: 0.0,
@@ -86,6 +76,54 @@ impl ResearcherService {
                 verification_status: VerificationStatus::Unverified,
             }]
         });
+
+        // Stage 2.5: ADVERSARIAL VERIFICATION
+        // Use a different provider for verification if multiple exist
+        let verifier = self.providers.last().unwrap_or(extractor);
+        logger.log(&format!("Starting Adversarial Verification using provider: {}", verifier.name()))?;
+        
+        let claims_text_only: Vec<String> = claims.iter().map(|c| c.text.clone()).collect();
+        
+        let verification_prompt = format!(
+            "Act as a contrarian fact-checker. I have extracted the following claims from the research data. \
+            Your job is to attempt to refute them using ONLY the provided research data. \
+            If the data explicitly supports the claim, mark it 'verified'. \
+            If the data contradicts the claim, mark it 'contradictory'. \
+            If there is no evidence either way, mark it 'rejected'. \
+            Return a JSON array of strings: [\"verified\", \"rejected\", \"contradictory\"], matching the order of the claims. \
+            Claims:\n{:?} \
+            Data:\n{}",
+            claims_text_only,
+            combined_raw
+        );
+
+        let verification_response = verifier.query(&verification_prompt).await.unwrap_or_default();
+        logger.log(&format!("Verification response: {}", verification_response))?;
+
+        // Attempt to parse verification response
+        if let Ok(statuses) = serde_json::from_str::<Vec<String>>(&verification_response) {
+            for (i, status_str) in statuses.iter().enumerate() {
+                if let Some(claim) = claims.get_mut(i) {
+                    claim.verification_status = match status_str.to_lowercase().as_str() {
+                        "verified" => VerificationStatus::Verified,
+                        "rejected" => VerificationStatus::Rejected,
+                        "contradictory" => VerificationStatus::Contradictory,
+                        _ => VerificationStatus::Unverified,
+                    };
+                }
+            }
+        } else {
+            logger.log("Failed to parse verification response as JSON array.")?;
+        }
+        
+        // Stage 3: SYNTHESIS & HYPOTHESES
+        let synthesis_prompt = format!(
+            "Based on the following research and verified claims, provide a concise final summary. \
+            Also, propose 2-3 hypotheses for further research. \
+            Claims: {:?}\nResearch Data: {}", 
+            claims, combined_raw
+        );
+        let synthesis = extractor.query(&synthesis_prompt).await.unwrap_or_else(|_| "Failed to generate synthesis.".to_string());
 
         let hypotheses = vec![
             Hypothesis {
